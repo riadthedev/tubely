@@ -2,7 +2,7 @@ import ytdl from '@distube/ytdl-core';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // Set maximum duration to 5 minutes
+export const maxDuration = 60; // Set maximum duration to 60 seconds (Vercel hobby plan limit)
 
 export async function GET(request) {
   // Get the URL from the search params
@@ -27,11 +27,17 @@ export async function GET(request) {
       throw new Error('No audio format found');
     }
 
+    // Check if video duration exceeds Vercel's timeout limit
+    const duration = parseInt(info.videoDetails.lengthSeconds);
+    if (duration > 600) { // 10 minutes max
+      throw new Error('Video is too long. Please choose a video under 10 minutes.');
+    }
+
     // Instead of streaming directly, return the audio URL and metadata
     return NextResponse.json({
       url: format.url,
       title: info.videoDetails.title,
-      duration: parseInt(info.videoDetails.lengthSeconds),
+      duration: duration,
       thumbnail: info.videoDetails.thumbnails[0]?.url,
       format: {
         container: format.container,
