@@ -2,7 +2,7 @@ import ytdl from '@distube/ytdl-core';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Set maximum duration to 60 seconds (Vercel hobby plan limit)
+export const maxDuration = 300; // Set maximum duration to 5 minutes
 
 export async function GET(request) {
   // Get the URL from the search params
@@ -15,7 +15,16 @@ export async function GET(request) {
   }
 
   try {
-    const info = await ytdl.getInfo(url);
+    // Add user-agent and cookies to mimic a real browser
+    const options = {
+      requestOptions: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        }
+      }
+    };
+
+    const info = await ytdl.getInfo(url, options);
     
     // Get the audio format
     const format = ytdl.chooseFormat(info.formats, { 
@@ -27,17 +36,11 @@ export async function GET(request) {
       throw new Error('No audio format found');
     }
 
-    // Check if video duration exceeds Vercel's timeout limit
-    const duration = parseInt(info.videoDetails.lengthSeconds);
-    if (duration > 600) { // 10 minutes max
-      throw new Error('Video is too long. Please choose a video under 10 minutes.');
-    }
-
     // Instead of streaming directly, return the audio URL and metadata
     return NextResponse.json({
       url: format.url,
       title: info.videoDetails.title,
-      duration: duration,
+      duration: parseInt(info.videoDetails.lengthSeconds),
       thumbnail: info.videoDetails.thumbnails[0]?.url,
       format: {
         container: format.container,
@@ -48,6 +51,15 @@ export async function GET(request) {
 
   } catch (error) {
     console.error('Audio fetch error:', error.message, error.stack);
+    
+    // Add more specific error handling
+    if (error.message.includes('Sign in to confirm')) {
+      return NextResponse.json({ 
+        error: 'YouTube request blocked',
+        details: 'Unable to access this video due to YouTube restrictions. Please try again later.' 
+      }, { status: 429 });
+    }
+    
     return NextResponse.json({ 
       error: 'Failed to fetch audio',
       details: error.message 
