@@ -2,7 +2,7 @@ import ytdl from '@distube/ytdl-core';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // Set maximum duration to 5 minutes
+export const maxDuration = 60; // Set maximum duration to 1 minutes
 
 export async function GET(request) {
   // Get the URL from the search params
