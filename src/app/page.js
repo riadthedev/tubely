@@ -6,38 +6,36 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [audioUrl, setAudioUrl] = useState('');
+  const [audioData, setAudioData] = useState(null);
   const audioRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setAudioData(null);
 
     try {
       const response = await fetch(`/api/audio?url=${encodeURIComponent(url)}`);
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch audio');
+        throw new Error(data.error || 'Failed to fetch audio');
       }
 
-      const blob = await response.blob();
-      const audioUrl = URL.createObjectURL(blob);
-      setAudioUrl(audioUrl);
+      setAudioData(data);
     } catch (err) {
-      setError('Failed to download audio. Please check the URL and try again.');
+      setError(err.message || 'Failed to load audio. Please check the URL and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Cleanup the object URL when component unmounts
-  useEffect(() => {
-    return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
-  }, [audioUrl]);
+  const formatDuration = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-4 md:p-24">
@@ -69,7 +67,7 @@ export default function Home() {
               className={`w-full py-2 px-4 rounded-lg font-medium transition-colors
                 ${isLoading 
                   ? 'bg-blue-600 cursor-not-allowed opacity-70'
-                  : 'bg-blue-500 hover:bg-blue-600'}`}
+                  : 'bg-blue-500 hover:bg-blue-600'} text-white`}
             >
               {isLoading ? 'Loading...' : 'Load Audio'}
             </button>
@@ -81,13 +79,29 @@ export default function Home() {
             </div>
           )}
 
-          {audioUrl && (
-            <div className="mt-6">
+          {audioData && (
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center space-x-4">
+                {audioData.thumbnail && (
+                  <img 
+                    src={audioData.thumbnail} 
+                    alt={audioData.title}
+                    className="w-20 h-20 rounded-lg object-cover"
+                  />
+                )}
+                <div>
+                  <h2 className="text-white font-medium truncate">{audioData.title}</h2>
+                  <p className="text-gray-400 text-sm">
+                    Duration: {formatDuration(audioData.duration)}
+                  </p>
+                </div>
+              </div>
+              
               <audio 
                 ref={audioRef}
                 controls
                 className="w-full"
-                src={audioUrl}
+                src={audioData.url}
                 preload="metadata"
               >
                 Your browser does not support the audio element.

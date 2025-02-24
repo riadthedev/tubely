@@ -1,6 +1,9 @@
 import ytdl from '@distube/ytdl-core';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // Set maximum duration to 5 minutes
+
 export async function GET(request) {
   // Get the URL from the search params
   const { searchParams } = new URL(request.url);
@@ -13,6 +16,8 @@ export async function GET(request) {
 
   try {
     const info = await ytdl.getInfo(url);
+    
+    // Get the audio format
     const format = ytdl.chooseFormat(info.formats, { 
       quality: 'highestaudio',
       filter: 'audioonly' 
@@ -22,25 +27,19 @@ export async function GET(request) {
       throw new Error('No audio format found');
     }
 
-    const stream = ytdl(url, {
-      format: format,
-      highWaterMark: 1 << 25, // 32MB buffer
-      requestOptions: {
-        headers: {
-          'Accept-Language': 'en-US,en;q=0.9'
-        }
+    // Instead of streaming directly, return the audio URL and metadata
+    return NextResponse.json({
+      url: format.url,
+      title: info.videoDetails.title,
+      duration: parseInt(info.videoDetails.lengthSeconds),
+      thumbnail: info.videoDetails.thumbnails[0]?.url,
+      format: {
+        container: format.container,
+        contentLength: format.contentLength,
+        audioBitrate: format.audioBitrate
       }
     });
 
-    // Return the stream as a Response with appropriate headers
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'audio/mpeg',
-        'Accept-Ranges': 'bytes',
-        'Cache-Control': 'no-cache',
-        'Content-Disposition': `inline; filename="${info.videoDetails.title}.mp3"`.replace(/[^\x00-\x7F]/g, '_')
-      }
-    });
   } catch (error) {
     console.error('Audio fetch error:', error.message, error.stack);
     return NextResponse.json({ 
