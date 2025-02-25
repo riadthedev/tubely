@@ -16,7 +16,14 @@ export default function Home() {
     setAudioData(null);
 
     try {
-      const response = await fetch(`https://8faf-24-137-126-29.ngrok-free.app/api/audio?url=${encodeURIComponent(url)}`);
+      // Convert youtu.be URLs to full format
+      let processedUrl = url;
+      if (url.includes('youtu.be')) {
+        const videoId = url.split('/').pop().split('?')[0];
+        processedUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      }
+
+      const response = await fetch(`https://8faf-24-137-126-29.ngrok-free.app/api/audio?url=${encodeURIComponent(processedUrl)}`);
       const data = await response.json();
       
       if (!response.ok) {
