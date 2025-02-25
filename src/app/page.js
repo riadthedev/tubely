@@ -16,7 +16,7 @@ export default function Home() {
     setAudioData(null);
 
     try {
-      const response = await fetch(`/api/audio?url=${encodeURIComponent(url)}`);
+      const response = await fetch(`https://8faf-24-137-126-29.ngrok-free.app/api/audio?url=${encodeURIComponent(url)}`);
       const data = await response.json();
       
       if (!response.ok) {

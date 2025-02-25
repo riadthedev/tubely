@@ -20,20 +20,38 @@ export async function GET(request) {
       requestOptions: {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': '*/*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Connection': 'keep-alive',
+          'Sec-Fetch-Dest': 'audio',
+          'Sec-Fetch-Mode': 'cors',
+          'Sec-Fetch-Site': 'cross-site',
         }
       }
     };
 
     const info = await ytdl.getInfo(url, options);
     
-    // Get the audio format
+    // Get the audio format with more specific criteria
     const format = ytdl.chooseFormat(info.formats, { 
       quality: 'highestaudio',
-      filter: 'audioonly' 
+      filter: 'audioonly',
+      format: 'mp4'  // Specify mp4 format which is more widely supported
     });
 
-    if (!format) {
-      throw new Error('No audio format found');
+    // Add format validation
+    if (!format || !format.url) {
+      throw new Error('No valid audio format found');
+    }
+
+    // Verify the URL is accessible
+    try {
+      const testResponse = await fetch(format.url, { method: 'HEAD' });
+      if (!testResponse.ok) {
+        throw new Error('Audio URL not accessible');
+      }
+    } catch (urlError) {
+      throw new Error('Failed to validate audio URL: ' + urlError.message);
     }
 
     // Instead of streaming directly, return the audio URL and metadata
