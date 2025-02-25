@@ -24,6 +24,16 @@ export default function Home() {
       }
 
       const response = await fetch(`https://8faf-24-137-126-29.ngrok-free.app/api/audio?url=${encodeURIComponent(processedUrl)}`);
+      
+      // Check if the response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Handle non-JSON response
+        const textResponse = await response.text();
+        console.error('Non-JSON response:', textResponse);
+        throw new Error('Server returned an invalid response. The service might be down.');
+      }
+      
       const data = await response.json();
       
       if (!response.ok) {
@@ -32,6 +42,7 @@ export default function Home() {
 
       setAudioData(data);
     } catch (err) {
+      console.error('Error details:', err);
       setError(err.message || 'Failed to load audio. Please check the URL and try again.');
     } finally {
       setIsLoading(false);
